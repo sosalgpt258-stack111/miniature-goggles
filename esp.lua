@@ -9,6 +9,8 @@ local localPlayer = Players.LocalPlayer
 function ESPModule.Init()
     local boxEnabled = false
     local healthBarEnabled = false
+    local nameEnabled = false
+    local distanceEnabled = false
     local maxDistance = 500
     local espCache = {}
     local renderConnection = nil
@@ -32,8 +34,9 @@ function ESPModule.Init()
             BL2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             BR1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             BR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
-            -- Черную фоновую линию убрали, осталась только сама полоска здоровья
-            HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 2, Color = Color3.fromRGB(0, 255, 0)})
+            HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 2, Color = Color3.fromRGB(0, 255, 0)}),
+            NameText = CreateDrawing("Text", {Visible = false, Size = 14, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255)}),
+            DistanceText = CreateDrawing("Text", {Visible = false, Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(200, 200, 200)})
         }
     end
 
@@ -59,7 +62,7 @@ function ESPModule.Init()
     end)
 
     renderConnection = RunService.RenderStepped:Connect(function()
-        if not boxEnabled and not healthBarEnabled then
+        if not boxEnabled and not healthBarEnabled and not nameEnabled and not distanceEnabled then
             for _, lines in pairs(espCache) do
                 for _, line in pairs(lines) do
                     line.Visible = false
@@ -95,7 +98,7 @@ function ESPModule.Init()
                         local y = topVector.Y
                         local length = math.clamp(width / 4, 6, 15)
 
-                        -- Отрисовка боксов (если включены)
+                        -- 1. Боксы
                         if boxEnabled then
                             lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
                             lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
@@ -118,10 +121,9 @@ function ESPModule.Init()
                             end
                         end
 
-                        -- Отрисовка хелсбара (если включен)
+                        -- 2. Хелсбар (толщина 2)
                         if healthBarEnabled then
                             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-                            -- Если боксы выключены, сдвигаем хелсбар ближе к центру персонажа
                             local barX = boxEnabled and (x - 6) or (x + 2)
                             
                             local currentHeight = height * healthPercent
@@ -131,6 +133,28 @@ function ESPModule.Init()
                             lines.HealthBar.Visible = true
                         else
                             lines.HealthBar.Visible = false
+                        end
+
+                        -- Смещение для текста сверху
+                        local textYOffset = 16
+
+                        -- 3. Никнейм
+                        if nameEnabled then
+                            lines.NameText.Text = player.Name
+                            lines.NameText.Position = Vector2.new(x + (width / 2), y - textYOffset)
+                            lines.NameText.Visible = true
+                            textYOffset = textYOffset + 14 -- Сдвигаем дистанцию выше, если ник тоже включен
+                        else
+                            lines.NameText.Visible = false
+                        end
+
+                        -- 4. Дистанция
+                        if distanceEnabled then
+                            lines.DistanceText.Text = "[" .. math.floor(distance) .. "m]"
+                            lines.DistanceText.Position = Vector2.new(x + (width / 2), y - textYOffset)
+                            lines.DistanceText.Visible = true
+                        else
+                            lines.DistanceText.Visible = false
                         end
 
                         visible = true
@@ -147,18 +171,16 @@ function ESPModule.Init()
     end)
 
     return {
-        SetEnabled = function(state)
-            boxEnabled = state
-        end,
-        SetHealthBarEnabled = function(state)
-            healthBarEnabled = state
-        end,
-        SetMaxDistance = function(distance)
-            maxDistance = distance
-        end,
+        SetEnabled = function(state) boxEnabled = state end,
+        SetHealthBarEnabled = function(state) healthBarEnabled = state end,
+        SetNameEnabled = function(state) nameEnabled = state end,
+        SetDistanceEnabled = function(state) distanceEnabled = state end,
+        SetMaxDistance = function(distance) maxDistance = distance end,
         Destroy = function()
             boxEnabled = false
             healthBarEnabled = false
+            nameEnabled = false
+            distanceEnabled = false
             if renderConnection then renderConnection:Disconnect() end
             if addedConn then addedConn:Disconnect() end
             if removingConn then removingConn:Disconnect() end
