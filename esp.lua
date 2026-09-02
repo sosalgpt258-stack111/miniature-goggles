@@ -8,11 +8,10 @@ local localPlayer = Players.LocalPlayer
 
 function ESPModule.Init()
     local ESPEnabled = false
+    local healthBarEnabled = false -- Статус хелсбара по умолчанию
+    local maxDistance = 500
     local espCache = {}
     local renderConnection = nil
-    
-    -- Максимальная дистанция отрисовки ESP (в студиях / степах)
-    local MAX_DISTANCE = 500
 
     local function CreateDrawing(type, properties)
         local drawing = Drawing.new(type)
@@ -79,10 +78,9 @@ function ESPModule.Init()
 
             local visible = false
             if localRoot and character and rootPart and humanoid and humanoid.Health > 0 then
-                -- Проверка дистанции до игрока
                 local distance = (localRoot.Position - rootPart.Position).Magnitude
 
-                if distance <= MAX_DISTANCE then
+                if distance <= maxDistance then
                     local cf, size = character:GetBoundingBox()
                     local topPoint = (cf + Vector3.new(0, size.Y / 2, 0)).Position
                     local bottomPoint = (cf - Vector3.new(0, size.Y / 2, 0)).Position
@@ -97,7 +95,7 @@ function ESPModule.Init()
                         local y = topVector.Y
                         local length = math.clamp(width / 4, 6, 15)
 
-                        -- Уголки бокса
+                        -- Рисуем уголки бокса
                         lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
                         lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
 
@@ -114,19 +112,24 @@ function ESPModule.Init()
                             lines[name].Visible = true
                         end
 
-                        -- Хелсбар
-                        local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-                        local barX = x - 6
-                        
-                        lines.HealthBarBg.From = Vector2.new(barX, y)
-                        lines.HealthBarBg.To = Vector2.new(barX, y + height)
-                        lines.HealthBarBg.Visible = true
+                        -- Управляем отображением хелсбара отдельной функцией
+                        if healthBarEnabled then
+                            local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                            local barX = x - 6
+                            
+                            lines.HealthBarBg.From = Vector2.new(barX, y)
+                            lines.HealthBarBg.To = Vector2.new(barX, y + height)
+                            lines.HealthBarBg.Visible = true
 
-                        local currentHeight = height * healthPercent
-                        lines.HealthBar.From = Vector2.new(barX, y + height)
-                        lines.HealthBar.To = Vector2.new(barX, y + height - currentHeight)
-                        lines.HealthBar.Color = Color3.fromRGB(255 - (healthPercent * 255), healthPercent * 255, 0)
-                        lines.HealthBar.Visible = true
+                            local currentHeight = height * healthPercent
+                            lines.HealthBar.From = Vector2.new(barX, y + height)
+                            lines.HealthBar.To = Vector2.new(barX, y + height - currentHeight)
+                            lines.HealthBar.Color = Color3.fromRGB(255 - (healthPercent * 255), healthPercent * 255, 0)
+                            lines.HealthBar.Visible = true
+                        else
+                            lines.HealthBarBg.Visible = false
+                            lines.HealthBar.Visible = false
+                        end
 
                         visible = true
                     end
@@ -144,6 +147,12 @@ function ESPModule.Init()
     return {
         SetEnabled = function(state)
             ESPEnabled = state
+        end,
+        SetHealthBarEnabled = function(state)
+            healthBarEnabled = state
+        end,
+        SetMaxDistance = function(distance)
+            maxDistance = distance
         end,
         Destroy = function()
             ESPEnabled = false
