@@ -25,5 +25,6 @@ end)
 local settingsCol = SettingsTab:CreateColumn("management", UDim2.new(0, 12, 0, 10), UDim2.new(0, 195, 0, 355))
 
 settingsCol:CreateButton("unload script", function()
+    esp.Destroy()
     Window:Unload()
 end)
