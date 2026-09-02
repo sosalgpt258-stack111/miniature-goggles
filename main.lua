@@ -23,9 +23,16 @@ visualsCol:CreateToggle("box corners", function(state)
     esp.SetEnabled(state)
 end)
 
--- Отдельный тумблер для хелсбара
 visualsCol:CreateToggle("health bar", function(state)
     esp.SetHealthBarEnabled(state)
+end)
+
+visualsCol:CreateToggle("name esp", function(state)
+    esp.SetNameEnabled(state)
+end)
+
+visualsCol:CreateToggle("distance esp", function(state)
+    esp.SetDistanceEnabled(state)
 end)
 
 -- Колонка настроек
