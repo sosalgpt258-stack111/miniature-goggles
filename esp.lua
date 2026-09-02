@@ -7,8 +7,8 @@ local Camera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer
 
 function ESPModule.Init()
-    local ESPEnabled = false
-    local healthBarEnabled = false -- Статус хелсбара по умолчанию
+    local boxEnabled = false
+    local healthBarEnabled = false
     local maxDistance = 500
     local espCache = {}
     local renderConnection = nil
@@ -32,7 +32,7 @@ function ESPModule.Init()
             BL2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             BR1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             BR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
-            HealthBarBg = CreateDrawing("Line", {Visible = false, Thickness = 3, Color = Color3.fromRGB(0, 0, 0)}),
+            -- Черную фоновую линию убрали, осталась только сама полоска здоровья
             HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(0, 255, 0)})
         }
     end
@@ -59,7 +59,7 @@ function ESPModule.Init()
     end)
 
     renderConnection = RunService.RenderStepped:Connect(function()
-        if not ESPEnabled then
+        if not boxEnabled and not healthBarEnabled then
             for _, lines in pairs(espCache) do
                 for _, line in pairs(lines) do
                     line.Visible = false
@@ -95,39 +95,41 @@ function ESPModule.Init()
                         local y = topVector.Y
                         local length = math.clamp(width / 4, 6, 15)
 
-                        -- Рисуем уголки бокса
-                        lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
-                        lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
+                        -- Отрисовка боксов (если включены)
+                        if boxEnabled then
+                            lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
+                            lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
 
-                        lines.TR1.From = Vector2.new(x + width, y) lines.TR1.To = Vector2.new(x + width - length, y)
-                        lines.TR2.From = Vector2.new(x + width, y) lines.TR2.To = Vector2.new(x + width, y + length)
+                            lines.TR1.From = Vector2.new(x + width, y) lines.TR1.To = Vector2.new(x + width - length, y)
+                            lines.TR2.From = Vector2.new(x + width, y) lines.TR2.To = Vector2.new(x + width, y + length)
 
-                        lines.BL1.From = Vector2.new(x, y + height) lines.BL1.To = Vector2.new(x + length, y + height)
-                        lines.BL2.From = Vector2.new(x, y + height) lines.BL2.To = Vector2.new(x, y + height - length)
+                            lines.BL1.From = Vector2.new(x, y + height) lines.BL1.To = Vector2.new(x + length, y + height)
+                            lines.BL2.From = Vector2.new(x, y + height) lines.BL2.To = Vector2.new(x, y + height - length)
 
-                        lines.BR1.From = Vector2.new(x + width, y + height) lines.BR1.To = Vector2.new(x + width - length, y + height)
-                        lines.BR2.From = Vector2.new(x + width, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length)
+                            lines.BR1.From = Vector2.new(x + width, y + height) lines.BR1.To = Vector2.new(x + width - length, y + height)
+                            lines.BR2.From = Vector2.new(x + width, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length)
 
-                        for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
-                            lines[name].Visible = true
+                            for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
+                                lines[name].Visible = true
+                            end
+                        else
+                            for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
+                                lines[name].Visible = false
+                            end
                         end
 
-                        -- Управляем отображением хелсбара отдельной функцией
+                        -- Отрисовка хелсбара (если включен)
                         if healthBarEnabled then
                             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-                            local barX = x - 6
+                            -- Если боксы выключены, сдвигаем хелсбар ближе к центру персонажа
+                            local barX = boxEnabled and (x - 6) or (x + 2)
                             
-                            lines.HealthBarBg.From = Vector2.new(barX, y)
-                            lines.HealthBarBg.To = Vector2.new(barX, y + height)
-                            lines.HealthBarBg.Visible = true
-
                             local currentHeight = height * healthPercent
                             lines.HealthBar.From = Vector2.new(barX, y + height)
                             lines.HealthBar.To = Vector2.new(barX, y + height - currentHeight)
                             lines.HealthBar.Color = Color3.fromRGB(255 - (healthPercent * 255), healthPercent * 255, 0)
                             lines.HealthBar.Visible = true
                         else
-                            lines.HealthBarBg.Visible = false
                             lines.HealthBar.Visible = false
                         end
 
@@ -146,7 +148,7 @@ function ESPModule.Init()
 
     return {
         SetEnabled = function(state)
-            ESPEnabled = state
+            boxEnabled = state
         end,
         SetHealthBarEnabled = function(state)
             healthBarEnabled = state
@@ -155,7 +157,8 @@ function ESPModule.Init()
             maxDistance = distance
         end,
         Destroy = function()
-            ESPEnabled = false
+            boxEnabled = false
+            healthBarEnabled = false
             if renderConnection then renderConnection:Disconnect() end
             if addedConn then addedConn:Disconnect() end
             if removingConn then removingConn:Disconnect() end
