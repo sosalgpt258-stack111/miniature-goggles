@@ -31,7 +31,9 @@ function ESPModule.Init()
 
     local function RemovePlayerESP(player)
         if espCache[player] then
-            for _, line in pairs(espCache[player]) do line:Remove() end
+            for _, line in pairs(espCache[player]) do
+                pcall(function() line:Remove() end)
+            end
             espCache[player] = nil
         end
     end
@@ -49,53 +51,74 @@ function ESPModule.Init()
     end)
 
     renderConnection = RunService.RenderStepped:Connect(function()
-        if not ESPEnabled then return end
+        if not ESPEnabled then
+            for _, lines in pairs(espCache) do
+                for _, line in pairs(lines) do
+                    line.Visible = false
+                end
+            end
+            return
+        end
 
         for player, lines in pairs(espCache) do
             local character = player.Character
             local rootPart = character and character:FindFirstChild("HumanoidRootPart")
             local humanoid = character and character:FindFirstChild("Humanoid")
 
+            local visible = false
             if character and rootPart and humanoid and humanoid.Health > 0 then
-                local vector, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                -- Используем ModelCFrame или Pivot для точного охвата персонажа, включая объемную одежду
+                local cf, size = character:GetBoundingBox()
+                local topPoint = (cf + Vector3.new(0, size.Y / 2, 0)).Position
+                local bottomPoint = (cf - Vector3.new(0, size.Y / 2, 0)).Position
 
-                if onScreen then
-                    local head = character:FindFirstChild("Head")
-                    local topPosition = head and Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or vector
-                    local bottomPosition = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                local topVector, topOnScreen = Camera:WorldToViewportPoint(topPoint)
+                local bottomVector, bottomOnScreen = Camera:WorldToViewportPoint(bottomPoint)
 
-                    local height = math.abs(topPosition.Y - bottomPosition.Y)
-                    local width = height / 2
-                    local x = vector.X - width / 2
-                    local y = topPosition.Y
-                    local length = width / 4
+                if topOnScreen or bottomOnScreen then
+                    local height = math.abs(topVector.Y - bottomVector.Y)
+                    local width = height * 0.65
+                    local x = topVector.X - width / 2
+                    local y = topVector.Y
+                    
+                    -- Длина линий уголков (адаптивная)
+                    local length = math.clamp(width / 4, 6, 15)
 
+                    -- Top Left
                     lines.TL1.From = Vector2.new(x, y)
                     lines.TL1.To = Vector2.new(x + length, y)
                     lines.TL2.From = Vector2.new(x, y)
                     lines.TL2.To = Vector2.new(x, y + length)
 
+                    -- Top Right
                     lines.TR1.From = Vector2.new(x + width, y)
                     lines.TR1.To = Vector2.new(x + width - length, y)
-                    lines.TR2.From = Vector2.new(x, y)
+                    lines.TR2.From = Vector2.new(x + width, y)
                     lines.TR2.To = Vector2.new(x + width, y + length)
 
+                    -- Bottom Left
                     lines.BL1.From = Vector2.new(x, y + height)
                     lines.BL1.To = Vector2.new(x + length, y + height)
                     lines.BL2.From = Vector2.new(x, y + height)
                     lines.BL2.To = Vector2.new(x, y + height - length)
 
+                    -- Bottom Right
                     lines.BR1.From = Vector2.new(x + width, y + height)
                     lines.BR1.To = Vector2.new(x + width - length, y + height)
-                    lines.BR2.From = Vector2.new(x, y + height)
-                    lines.BR2.To = Vector2.new(x, y + height - length)
+                    lines.BR2.From = Vector2.new(x + width, y + height)
+                    lines.BR2.To = Vector2.new(x + width, y + height - length)
 
-                    for _, line in pairs(lines) do line.Visible = true end
-                else
-                    for _, line in pairs(lines) do line.Visible = false end
+                    for _, line in pairs(lines) do
+                        line.Visible = true
+                    end
+                    visible = true
                 end
-            else
-                for _, line in pairs(lines) do line.Visible = false end
+            end
+
+            if not visible then
+                for _, line in pairs(lines) do
+                    line.Visible = false
+                end
             end
         end
     end)
@@ -103,11 +126,6 @@ function ESPModule.Init()
     return {
         SetEnabled = function(state)
             ESPEnabled = state
-            if not ESPEnabled then
-                for _, lines in pairs(espCache) do
-                    for _, line in pairs(lines) do line.Visible = false end
-                end
-            end
         end,
         Destroy = function()
             ESPEnabled = false
