@@ -10,29 +10,38 @@ function ESPModule.Init()
     local ESPEnabled = false
     local espCache = {}
     local renderConnection = nil
+    
+    -- Максимальная дистанция отрисовки ESP (в студиях / степах)
+    local MAX_DISTANCE = 500
 
-    local function CreateCornerLine()
-        local line = Drawing.new("Line")
-        line.Visible = false
-        line.Thickness = 1.5
-        line.Color = Color3.fromRGB(255, 255, 255)
-        return line
+    local function CreateDrawing(type, properties)
+        local drawing = Drawing.new(type)
+        for k, v in pairs(properties) do
+            drawing[k] = v
+        end
+        return drawing
     end
 
     local function CreatePlayerESP(player)
         if espCache[player] then return end
         espCache[player] = {
-            TL1 = CreateCornerLine(), TL2 = CreateCornerLine(),
-            TR1 = CreateCornerLine(), TR2 = CreateCornerLine(),
-            BL1 = CreateCornerLine(), BL2 = CreateCornerLine(),
-            BR1 = CreateCornerLine(), BR2 = CreateCornerLine()
+            TL1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            TL2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            TR1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            TR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            BL1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            BL2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            BR1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            BR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
+            HealthBarBg = CreateDrawing("Line", {Visible = false, Thickness = 3, Color = Color3.fromRGB(0, 0, 0)}),
+            HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(0, 255, 0)})
         }
     end
 
     local function RemovePlayerESP(player)
         if espCache[player] then
-            for _, line in pairs(espCache[player]) do
-                pcall(function() line:Remove() end)
+            for _, drawing in pairs(espCache[player]) do
+                pcall(function() drawing:Remove() end)
             end
             espCache[player] = nil
         end
@@ -60,58 +69,67 @@ function ESPModule.Init()
             return
         end
 
+        local localChar = localPlayer.Character
+        local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
         for player, lines in pairs(espCache) do
             local character = player.Character
             local rootPart = character and character:FindFirstChild("HumanoidRootPart")
             local humanoid = character and character:FindFirstChild("Humanoid")
 
             local visible = false
-            if character and rootPart and humanoid and humanoid.Health > 0 then
-                -- Используем ModelCFrame или Pivot для точного охвата персонажа, включая объемную одежду
-                local cf, size = character:GetBoundingBox()
-                local topPoint = (cf + Vector3.new(0, size.Y / 2, 0)).Position
-                local bottomPoint = (cf - Vector3.new(0, size.Y / 2, 0)).Position
+            if localRoot and character and rootPart and humanoid and humanoid.Health > 0 then
+                -- Проверка дистанции до игрока
+                local distance = (localRoot.Position - rootPart.Position).Magnitude
 
-                local topVector, topOnScreen = Camera:WorldToViewportPoint(topPoint)
-                local bottomVector, bottomOnScreen = Camera:WorldToViewportPoint(bottomPoint)
+                if distance <= MAX_DISTANCE then
+                    local cf, size = character:GetBoundingBox()
+                    local topPoint = (cf + Vector3.new(0, size.Y / 2, 0)).Position
+                    local bottomPoint = (cf - Vector3.new(0, size.Y / 2, 0)).Position
 
-                if topOnScreen or bottomOnScreen then
-                    local height = math.abs(topVector.Y - bottomVector.Y)
-                    local width = height * 0.65
-                    local x = topVector.X - width / 2
-                    local y = topVector.Y
-                    
-                    -- Длина линий уголков (адаптивная)
-                    local length = math.clamp(width / 4, 6, 15)
+                    local topVector, topOnScreen = Camera:WorldToViewportPoint(topPoint)
+                    local bottomVector, bottomOnScreen = Camera:WorldToViewportPoint(bottomPoint)
 
-                    -- Top Left
-                    lines.TL1.From = Vector2.new(x, y)
-                    lines.TL1.To = Vector2.new(x + length, y)
-                    lines.TL2.From = Vector2.new(x, y)
-                    lines.TL2.To = Vector2.new(x, y + length)
+                    if topOnScreen or bottomOnScreen then
+                        local height = math.abs(topVector.Y - bottomVector.Y)
+                        local width = height * 0.65
+                        local x = topVector.X - width / 2
+                        local y = topVector.Y
+                        local length = math.clamp(width / 4, 6, 15)
 
-                    -- Top Right
-                    lines.TR1.From = Vector2.new(x + width, y)
-                    lines.TR1.To = Vector2.new(x + width - length, y)
-                    lines.TR2.From = Vector2.new(x + width, y)
-                    lines.TR2.To = Vector2.new(x + width, y + length)
+                        -- Уголки бокса
+                        lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
+                        lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
 
-                    -- Bottom Left
-                    lines.BL1.From = Vector2.new(x, y + height)
-                    lines.BL1.To = Vector2.new(x + length, y + height)
-                    lines.BL2.From = Vector2.new(x, y + height)
-                    lines.BL2.To = Vector2.new(x, y + height - length)
+                        lines.TR1.From = Vector2.new(x + width, y) lines.TR1.To = Vector2.new(x + width - length, y)
+                        lines.TR2.From = Vector2.new(x + width, y) lines.TR2.To = Vector2.new(x + width, y + length)
 
-                    -- Bottom Right
-                    lines.BR1.From = Vector2.new(x + width, y + height)
-                    lines.BR1.To = Vector2.new(x + width - length, y + height)
-                    lines.BR2.From = Vector2.new(x + width, y + height)
-                    lines.BR2.To = Vector2.new(x + width, y + height - length)
+                        lines.BL1.From = Vector2.new(x, y + height) lines.BL1.To = Vector2.new(x + length, y + height)
+                        lines.BL2.From = Vector2.new(x, y + height) lines.BL2.To = Vector2.new(x, y + height - length)
 
-                    for _, line in pairs(lines) do
-                        line.Visible = true
+                        lines.BR1.From = Vector2.new(x + width, y + height) lines.BR1.To = Vector2.new(x + width - length, y + height)
+                        lines.BR2.From = Vector2.new(x + width, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length)
+
+                        for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
+                            lines[name].Visible = true
+                        end
+
+                        -- Хелсбар
+                        local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                        local barX = x - 6
+                        
+                        lines.HealthBarBg.From = Vector2.new(barX, y)
+                        lines.HealthBarBg.To = Vector2.new(barX, y + height)
+                        lines.HealthBarBg.Visible = true
+
+                        local currentHeight = height * healthPercent
+                        lines.HealthBar.From = Vector2.new(barX, y + height)
+                        lines.HealthBar.To = Vector2.new(barX, y + height - currentHeight)
+                        lines.HealthBar.Color = Color3.fromRGB(255 - (healthPercent * 255), healthPercent * 255, 0)
+                        lines.HealthBar.Visible = true
+
+                        visible = true
                     end
-                    visible = true
                 end
             end
 
