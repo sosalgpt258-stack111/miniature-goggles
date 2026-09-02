@@ -9,6 +9,7 @@ local localPlayer = Players.LocalPlayer
 function ESPModule.Init()
     local ESPEnabled = false
     local espCache = {}
+    local renderConnection = nil
 
     local function CreateCornerLine()
         local line = Drawing.new("Line")
@@ -39,15 +40,15 @@ function ESPModule.Init()
         if player ~= localPlayer then CreatePlayerESP(player) end
     end
 
-    Players.PlayerAdded:Connect(function(player)
+    local addedConn = Players.PlayerAdded:Connect(function(player)
         if player ~= localPlayer then CreatePlayerESP(player) end
     end)
 
-    Players.PlayerRemoving:Connect(function(player)
+    local removingConn = Players.PlayerRemoving:Connect(function(player)
         RemovePlayerESP(player)
     end)
 
-    RunService.RenderStepped:Connect(function()
+    renderConnection = RunService.RenderStepped:Connect(function()
         if not ESPEnabled then return end
 
         for player, lines in pairs(espCache) do
@@ -76,7 +77,7 @@ function ESPModule.Init()
 
                     lines.TR1.From = Vector2.new(x + width, y)
                     lines.TR1.To = Vector2.new(x + width - length, y)
-                    lines.TR2.From = Vector2.new(x + width, y)
+                    lines.TR2.From = Vector2.new(x, y)
                     lines.TR2.To = Vector2.new(x + width, y + length)
 
                     lines.BL1.From = Vector2.new(x, y + height)
@@ -106,6 +107,15 @@ function ESPModule.Init()
                 for _, lines in pairs(espCache) do
                     for _, line in pairs(lines) do line.Visible = false end
                 end
+            end
+        end,
+        Destroy = function()
+            ESPEnabled = false
+            if renderConnection then renderConnection:Disconnect() end
+            if addedConn then addedConn:Disconnect() end
+            if removingConn then removingConn:Disconnect() end
+            for player, _ in pairs(espCache) do
+                RemovePlayerESP(player)
             end
         end
     }
