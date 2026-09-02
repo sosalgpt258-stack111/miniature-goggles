@@ -17,8 +17,15 @@ local InfoTab = Window:CreateTab("Info", 5)
 local visualsCol = VisualsTab:CreateColumn("esp settings", UDim2.new(0, 12, 0, 10), UDim2.new(0, 195, 0, 355))
 local esp = ESPModule.Init()
 
+esp.SetMaxDistance(500)
+
 visualsCol:CreateToggle("box corners", function(state)
     esp.SetEnabled(state)
+end)
+
+-- Отдельный тумблер для хелсбара
+visualsCol:CreateToggle("health bar", function(state)
+    esp.SetHealthBarEnabled(state)
 end)
 
 -- Колонка настроек
