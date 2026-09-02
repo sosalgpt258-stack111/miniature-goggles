@@ -33,7 +33,7 @@ function ESPModule.Init()
             BR1 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             BR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             -- Черную фоновую линию убрали, осталась только сама полоска здоровья
-            HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(0, 255, 0)})
+            HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 3, Color = Color3.fromRGB(0, 255, 0)})
         }
     end
 
