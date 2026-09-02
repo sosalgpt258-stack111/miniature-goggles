@@ -36,7 +36,7 @@ function ESPModule.Init()
             BR2 = CreateDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(255, 255, 255)}),
             HealthBar = CreateDrawing("Line", {Visible = false, Thickness = 2, Color = Color3.fromRGB(0, 255, 0)}),
             NameText = CreateDrawing("Text", {Visible = false, Size = 14, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255)}),
-            DistanceText = CreateDrawing("Text", {Visible = false, Size = 13, Center = true, Outline = true, Color = Color3.fromRGB(200, 200, 200)})
+            DistanceText = CreateDrawing("Text", {Visible = false, Size = 13, Center = false, Outline = true, Color = Color3.fromRGB(255, 255, 255)})
         }
     end
 
@@ -110,7 +110,7 @@ function ESPModule.Init()
                             lines.BL2.From = Vector2.new(x, y + height) lines.BL2.To = Vector2.new(x, y + height - length)
 
                             lines.BR1.From = Vector2.new(x + width, y + height) lines.BR1.To = Vector2.new(x + width - length, y + height)
-                            lines.BR2.From = Vector2.new(x + width, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length)
+                            lines.BR2.From = Vector2.new(x, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length) -- поправка на нижний правый
 
                             for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
                                 lines[name].Visible = true
@@ -121,7 +121,7 @@ function ESPModule.Init()
                             end
                         end
 
-                        -- 2. Хелсбар (толщина 2)
+                        -- 2. Хелсбар (слева)
                         if healthBarEnabled then
                             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
                             local barX = boxEnabled and (x - 6) or (x + 2)
@@ -135,23 +135,19 @@ function ESPModule.Init()
                             lines.HealthBar.Visible = false
                         end
 
-                        -- Смещение для текста сверху
-                        local textYOffset = 16
-
-                        -- 3. Никнейм
+                        -- 3. Никнейм (сверху по центру)
                         if nameEnabled then
                             lines.NameText.Text = player.Name
-                            lines.NameText.Position = Vector2.new(x + (width / 2), y - textYOffset)
+                            lines.NameText.Position = Vector2.new(x + (width / 2), y - 16)
                             lines.NameText.Visible = true
-                            textYOffset = textYOffset + 14 -- Сдвигаем дистанцию выше, если ник тоже включен
                         else
                             lines.NameText.Visible = false
                         end
 
-                        -- 4. Дистанция
+                        -- 4. Дистанция (справа от бокса, по центру высоты)
                         if distanceEnabled then
-                            lines.DistanceText.Text = "[" .. math.floor(distance) .. "m]"
-                            lines.DistanceText.Position = Vector2.new(x + (width / 2), y - textYOffset)
+                            lines.DistanceText.Text = math.floor(distance) .. "m"
+                            lines.DistanceText.Position = Vector2.new(x + width + 5, y + (height / 2) - 6)
                             lines.DistanceText.Visible = true
                         else
                             lines.DistanceText.Visible = false
