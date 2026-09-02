@@ -98,7 +98,7 @@ function ESPModule.Init()
                         local y = topVector.Y
                         local length = math.clamp(width / 4, 6, 15)
 
-                        -- 1. Боксы
+                        -- 1. Боксы (с исправленными углами)
                         if boxEnabled then
                             lines.TL1.From = Vector2.new(x, y) lines.TL1.To = Vector2.new(x + length, y)
                             lines.TL2.From = Vector2.new(x, y) lines.TL2.To = Vector2.new(x, y + length)
@@ -110,7 +110,7 @@ function ESPModule.Init()
                             lines.BL2.From = Vector2.new(x, y + height) lines.BL2.To = Vector2.new(x, y + height - length)
 
                             lines.BR1.From = Vector2.new(x + width, y + height) lines.BR1.To = Vector2.new(x + width - length, y + height)
-                            lines.BR2.From = Vector2.new(x, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length) -- поправка на нижний правый
+                            lines.BR2.From = Vector2.new(x + width, y + height) lines.BR2.To = Vector2.new(x + width, y + height - length)
 
                             for _, name in ipairs({"TL1", "TL2", "TR1", "TR2", "BL1", "BL2", "BR1", "BR2"}) do
                                 lines[name].Visible = true
@@ -121,7 +121,7 @@ function ESPModule.Init()
                             end
                         end
 
-                        -- 2. Хелсбар (слева)
+                        -- 2. Хелсбар (слева, толщина 2)
                         if healthBarEnabled then
                             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
                             local barX = boxEnabled and (x - 6) or (x + 2)
